@@ -10,29 +10,17 @@ var defaults = require('defaults');
 function timestampsPlugin(schema, options) {
     var updatedAt = 'updatedAt';
     var createdAt = 'createdAt';
-    var updatedAtOpts = Date;
-    var createdAtOpts = Date;
+    var updatedAtOpts = Number;
+    var createdAtOpts = Number;
     var dataObj = {};
 
     if (typeof options === 'object') {
         if (typeof options.updatedAt === 'string') {
            updatedAt = options.updatedAt;
-        } else if (typeof options.updatedAt === 'object') {
-            updatedAtOpts = defaults(options.updatedAt, {
-                name: updatedAt,
-                type: Date
-            });
-            updatedAt = updatedAtOpts.name;
         }
 
         if (typeof options.createdAt === 'string') {
             createdAt = options.createdAt;
-        } else if (typeof options.createdAt === 'object') {
-            createdAtOpts = defaults(options.createdAt, {
-                name: createdAt,
-                type: Date
-            });
-            createdAt = createdAtOpts.name;
         }
     }
 
@@ -40,16 +28,11 @@ function timestampsPlugin(schema, options) {
 
     if (schema.path(createdAt)) {
 	schema.add(dataObj);
-	schema.virtual(createdAt)
-	    .get( function () {
-		if (this["_" + createdAt]) return this["_" + createdAt];
-		return this["_" + createdAt] = this._id.getTimestamp();
-	    });
 	schema.pre('save', function (next) {
 	    if (this.isNew) {
 		this[updatedAt] = this[createdAt];
 	    } else if (this.isModified()) {
-		this[updatedAt] = new Date;
+		this[updatedAt] = Date.now();
 	    }
 	    next();
 	});
@@ -59,9 +42,9 @@ function timestampsPlugin(schema, options) {
 	schema.add(dataObj);
 	schema.pre('save', function (next) {
 	    if (!this[createdAt]) {
-		this[createdAt] = this[updatedAt] = new Date;
+		this[createdAt] = this[updatedAt] = Date.now();
 	    } else if (this.isModified()) {
-		this[updatedAt] = new Date;
+		this[updatedAt] = Date.now();
 	    }
 	    next();
 	});
@@ -70,9 +53,9 @@ function timestampsPlugin(schema, options) {
     schema.pre('findOneAndUpdate', function (next) {
 	if (this.op === 'findOneAndUpdate') {
 	    this._update = this._update || {};
-	    this._update[updatedAt] = new Date;
+	    this._update[updatedAt] = Date.now();
 	    this._update['$setOnInsert'] = this._update['$setOnInsert'] || {};
-	    this._update['$setOnInsert'][createdAt] = new Date;
+	    this._update['$setOnInsert'][createdAt] = Date.now();
 	}
 	next();
     });
@@ -80,16 +63,16 @@ function timestampsPlugin(schema, options) {
     schema.pre('update', function(next) {
 	if (this.op === 'update') {
 	    this._update = this._update || {};
-	    this._update[updatedAt] = new Date;
+	    this._update[updatedAt] = Date.now();
 	    this._update['$setOnInsert'] = this._update['$setOnInsert'] || {};
-	    this._update['$setOnInsert'][createdAt] = new Date;
+	    this._update['$setOnInsert'][createdAt] = Date.now();
 	}
 	next();
     });
 
     if(!schema.methods.hasOwnProperty('touch'))
 	schema.methods.touch = function(callback){
-	    this[updatedAt] = new Date;
+	    this[updatedAt] = Date.now();
 	    this.save(callback)
 	}
 
